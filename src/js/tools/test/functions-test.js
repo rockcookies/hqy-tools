@@ -1,4 +1,4 @@
-var _ = require('./test-mixin')({}, {
+var _ = {
 	times: require('../utility/times'),
 
 	bind: require('../functions/bind'),
@@ -14,9 +14,9 @@ var _ = require('./test-mixin')({}, {
 	after: require('../functions/after'),
 	before: require('../functions/before'),
 	restArgs: require('../functions/restArgs')
-});
+};
 
-QUnit.module('Functions');
+QUnit.module('Tools.Functions');
 QUnit.config.asyncRetries = 3;
 
 QUnit.test('bind', function(assert) {

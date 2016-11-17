@@ -1,5 +1,5 @@
 var HQY_escape = require('../strings/escape');
-var HQY_keys = require('../objects/keys');
+var HQY_defaults = require('../objects/defaults');
 var HQY_templateSettings = require('./templateSettings');
 
 // When customizing `templateSettings`, if you don't want to define an
@@ -30,13 +30,7 @@ var escapeChar = function(match) {
 // NB: `oldSettings` only exists for backwards compatibility.
 
 module.exports = function(text, settings) {
-	settings = settings || {};
-
-	var defaultKeys = HQY_keys(HQY_templateSettings);
-	for (var i=0;i<defaultKeys.length;i++) {
-		var defaultKey = defaultKeys[i];
-		settings[defaultKey] = settings[defaultKey] || HQY_templateSettings[defaultKey];
-	}
+	settings = HQY_defaults({}, settings, HQY_templateSettings);
 
 	// Combine delimiters into one regular expression via alternation.
 	var matcher = RegExp([

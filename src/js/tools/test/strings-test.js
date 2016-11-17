@@ -1,10 +1,13 @@
-var _ = require('./test-mixin')({}, {
+var _ = {
 	each: require('../collection/each'),
 
 	capitalize: require('../strings/capitalize'),
 	escape: require('../strings/escape'),
-	unescape: require('../strings/unescape')
-});
+	unescape: require('../strings/unescape'),
+	trim: require('../strings/trim'),
+	trimLeft: require('../strings/trimLeft'),
+	trimRight: require('../strings/trimRight')
+};
 
 function arrayEvery(arr, func) {
 	for (var i=0; i<arr.length; i++) {
@@ -17,7 +20,7 @@ function arrayEvery(arr, func) {
 }
 
 
-QUnit.module('Strings');
+QUnit.module('Tools.Strings');
 
 test('_.capitalize', function(assert) {
   assert.strictEqual(_.capitalize('fabio'), 'Fabio', 'First letter is upper case');
@@ -89,3 +92,47 @@ QUnit.test('_.escape & unescape', function(assert) {
 	assert.notStrictEqual(escaped.indexOf('&'), -1, 'handles & aka &amp;');
 	assert.strictEqual(_.unescape(str), str, 'can unescape &amp;');
 });
+
+QUnit.test( "trim", function( assert ) {
+	assert.expect( 13 );
+
+	var nbsp = String.fromCharCode( 160 );
+
+	assert.equal( _.trim( "hello  " ), "hello", "trailing space" );
+	assert.equal( _.trim( "  hello" ), "hello", "leading space" );
+	assert.equal( _.trim( "  hello   " ), "hello", "space on both sides" );
+	assert.equal( _.trim( "  " + nbsp + "hello  " + nbsp + " " ), "hello", "&nbsp;" );
+
+	assert.equal( _.trim(), "", "Nothing in." );
+	assert.equal( _.trim( undefined ), "", "Undefined" );
+	assert.equal( _.trim( null ), "", "Null" );
+	assert.equal( _.trim( 5 ), "5", "Number" );
+	assert.equal( _.trim( false ), "false", "Boolean" );
+
+	assert.equal( _.trim( " " ), "", "space should be trimmed" );
+	assert.equal( _.trim( "ipad\xA0" ), "ipad", "nbsp should be trimmed" );
+	assert.equal( _.trim( "\uFEFF" ), "", "zwsp should be trimmed" );
+	assert.equal( _.trim( "\uFEFF \xA0! | \uFEFF" ), "! |", "leading/trailing should be trimmed" );
+} );
+
+QUnit.test( "trimLeft", function( assert ) {
+	assert.equal(_.trimLeft(' foo'), 'foo');
+	assert.equal(_.trimLeft('    foo'), 'foo');
+	assert.equal(_.trimLeft('foo '), 'foo ');
+	assert.equal(_.trimLeft(' foo '), 'foo ');
+	assert.equal(_.trimLeft(''), '', 'trimLeft empty string should return empty string');
+	assert.equal(_.trimLeft(null), '', 'trimLeft null should return empty string');
+	assert.equal(_.trimLeft(undefined), '', 'trimLeft undefined should return empty string');
+});
+
+QUnit.test( "trimRight", function( assert ) {
+	assert.equal(_.trimRight(' foo'), ' foo');
+	assert.equal(_.trimRight('foo '), 'foo');
+	assert.equal(_.trimRight('foo     '), 'foo');
+	assert.equal(_.trimRight('foo  bar     '), 'foo  bar');
+	assert.equal(_.trimRight(' foo '), ' foo');
+
+	assert.equal(_.trimRight(''), '', 'trimRight empty string should return empty string');
+	assert.equal(_.trimRight(null), '', 'trimRight null should return empty string');
+});
+

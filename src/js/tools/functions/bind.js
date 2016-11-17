@@ -1,4 +1,4 @@
-var HQY_types = require('../objects/types');
+var HQY_isFunction = require('../types/isFunction');
 
 var restArgs = require('../helper/restArgs');
 var executeBound = require('../helper/executeBound');
@@ -18,7 +18,7 @@ func('!');
 
 */
 module.exports = restArgs(function (func, context, args) {
-	if (!HQY_types.isFunction(func)) throw new TypeError('Bind must be called on a function');
+	if (!HQY_isFunction(func)) throw new TypeError('Bind must be called on a function');
 	var bound = restArgs(function(callArgs) {
 		return executeBound(func, bound, context, this, args.concat(callArgs));
 	});

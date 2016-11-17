@@ -1,4 +1,4 @@
-var HQY_types = require('../objects/types');
+var HQY_isObject = require('../types/isObject');
 
 var nativeCreate = Object.create;
 
@@ -7,7 +7,7 @@ var Ctor = function(){};
 
 // An internal function for creating a new object that inherits from another.
 module.exports = function(prototype) {
-	if (!HQY_types.isObject(prototype)) return {};
+	if (!HQY_isObject(prototype)) return {};
 	if (nativeCreate) return nativeCreate(prototype);
 	Ctor.prototype = prototype;
 	var result = new Ctor;

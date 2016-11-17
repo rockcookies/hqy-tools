@@ -1,12 +1,12 @@
-var _ = require('./test-mixin')({}, {
-	times: require('../utility/times'),
+var underscore = require('underscore');
 
+var _ = {
 	each: require('../collection/each')
-});
+};
 
 var arrayContains = require('../helper/arrayContains');
 
-QUnit.module('Collections');
+QUnit.module('Tools.Collections');
 
 QUnit.test('each', function(assert) {
 	_.each([1, 2, 3], function(num, i) {
@@ -29,14 +29,14 @@ QUnit.test('each', function(assert) {
 	delete obj.constructor.prototype.four;
 
 	// ensure the each function is JITed
-	_.times(1000, function() { _.each([], function(){}); });
+	underscore(1000).times(function() { _.each([], function(){}); });
 	var count = 0;
 	obj = {1: 'foo', 2: 'bar', 3: 'baz'};
 	_.each(obj, function(){ count++; });
 	assert.strictEqual(count, 3, 'the fun should be called only 3 times');
 
 	var answer = null;
-	_.each([1, 2, 3], function(num, index, arr){ if (arrayContains(arr, num)) answer = true; });
+	_.each([1, 2, 3], function(num, index, arr){ if (underscore.include(arr, num)) answer = true; });
 	assert.ok(answer, 'can reference the original collection from inside the iterator');
 
 	answers = 0;
@@ -49,3 +49,5 @@ QUnit.test('each', function(assert) {
 	assert.strictEqual(_.each(a, function(){}), a);
 	assert.strictEqual(_.each(null, function(){}), null);
 });
+
+

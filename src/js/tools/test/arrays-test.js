@@ -1,9 +1,9 @@
-var _ = require('./test-mixin')({}, {
+var _ = {
 	flatten: require('../arrays/flatten'),
 	range: require('../arrays/range')
-});
+};
 
-QUnit.module('Arrays');
+QUnit.module('Tools.Arrays');
 
 QUnit.test('flatten', function(assert) {
 	assert.deepEqual(_.flatten(null), [], 'supports null');

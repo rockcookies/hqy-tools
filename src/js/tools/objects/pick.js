@@ -1,4 +1,4 @@
-var HQY_types = require('./types');
+var HQY_isFunction = require('../types/isFunction');
 var HQY_allKeys = require('./allKeys');
 
 var flatten = require('../helper/flatten');
@@ -14,7 +14,7 @@ var keyInObj = function(value, key, obj) {
 module.exports = restArgs(function(obj, keys) {
 	var result = {}, iteratee = keys[0];
 	if (obj == null) return result;
-	if (HQY_types.isFunction(iteratee)) {
+	if (HQY_isFunction(iteratee)) {
 		if (keys.length > 1) iteratee = optimizeCb(iteratee, keys[1]);
 		keys = HQY_allKeys(obj);
 	} else {

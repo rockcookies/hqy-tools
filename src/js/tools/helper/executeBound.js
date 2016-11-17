@@ -1,4 +1,4 @@
-var HQY_types = require('../objects/types');
+var HQY_isObject = require('../types/isObject');
 
 var baseCreate = require('./baseCreate');
 
@@ -8,6 +8,6 @@ module.exports = function(sourceFunc, boundFunc, context, callingContext, args) 
 	if (!(callingContext instanceof boundFunc)) return sourceFunc.apply(context, args);
 	var self = baseCreate(sourceFunc.prototype);
 	var result = sourceFunc.apply(self, args);
-	if (HQY_types.isObject(result)) return result;
+	if (HQY_isObject(result)) return result;
 	return self;
 };

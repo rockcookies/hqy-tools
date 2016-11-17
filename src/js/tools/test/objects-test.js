@@ -1,17 +1,28 @@
-var _ = require('./test-mixin')({}, require('../objects/types'), {
+var underscore = require('underscore');
+
+var _ = {
 	each: require('../collection/each'),
 	constant: require('../utility/constant'),
+	isNaN: require('../types/isNaN'),
+	isArray: require('../types/isArray'),
+	isPlainObject: require('../types/isPlainObject'),
 
 	keys: require('../objects/keys'),
 	allKeys: require('../objects/allKeys'),
 	values: require('../objects/values'),
+	extend: require('../objects/extend'),
+	extendDeep: require('../objects/extendDeep'),
+	extendOwn: require('../objects/assign'),
+	assign: require('../objects/assign'),
+	defaults: require('../objects/defaults'),
+	clone: require('../objects/clone'),
 	has: require('../objects/has'),
 	invert: require('../objects/invert'),
 	pick: require('../objects/pick')
-});
+};
 
 
-QUnit.module('Objects');
+QUnit.module('Tools.Objects');
 
 var testElement = typeof document === 'object' ? document.createElement('div') : void 0;
 
@@ -98,6 +109,67 @@ QUnit.test('values', function(assert) {
 	assert.deepEqual(_.values({one: 1, two: 2, length: 3}), [1, 2, 3], '... even when one of them is "length"');
 });
 
+QUnit.test('extend', function(assert) {
+	var result;
+	assert.strictEqual(_.extend({}, {a: 'b'}).a, 'b', 'can extend an object with the attributes of another');
+	assert.strictEqual(_.extend({a: 'x'}, {a: 'b'}).a, 'b', 'properties in source override destination');
+	assert.strictEqual(_.extend({x: 'x'}, {a: 'b'}).x, 'x', "properties not in source don't get overridden");
+	result = _.extend({x: 'x'}, {a: 'a'}, {b: 'b'});
+	assert.deepEqual(result, {x: 'x', a: 'a', b: 'b'}, 'can extend from multiple source objects');
+	result = _.extend({x: 'x'}, {a: 'a', x: 2}, {a: 'b'});
+	assert.deepEqual(result, {x: 2, a: 'b'}, 'extending from multiple source objects last property trumps');
+	result = _.extend({}, {a: void 0, b: null});
+	assert.deepEqual(_.keys(result), ['a', 'b'], 'extend copies undefined values');
+
+	var F = function() {};
+	F.prototype = {a: 'b'};
+	var subObj = new F();
+	subObj.c = 'd';
+	assert.deepEqual(_.extend({}, subObj), {a: 'b', c: 'd'}, 'extend copies all properties from source');
+	_.extend(subObj, {});
+	assert.notOk(subObj.hasOwnProperty('a'), "extend does not convert destination object's 'in' properties to 'own' properties");
+
+	try {
+		result = {};
+		_.extend(result, null, void 0, {a: 1});
+	} catch (e) { /* ignored */ }
+
+	assert.strictEqual(result.a, 1, 'should not error on `null` or `undefined` sources');
+
+	assert.strictEqual(_.extend(null, {a: 1}), null, 'extending null results in null');
+	assert.strictEqual(_.extend(void 0, {a: 1}), void 0, 'extending undefined results in undefined');
+});
+
+QUnit.test('extendOwn', function(assert) {
+	var result;
+	assert.strictEqual(_.extendOwn({}, {a: 'b'}).a, 'b', 'can extend an object with the attributes of another');
+	assert.strictEqual(_.extendOwn({a: 'x'}, {a: 'b'}).a, 'b', 'properties in source override destination');
+	assert.strictEqual(_.extendOwn({x: 'x'}, {a: 'b'}).x, 'x', "properties not in source don't get overridden");
+	result = _.extendOwn({x: 'x'}, {a: 'a'}, {b: 'b'});
+	assert.deepEqual(result, {x: 'x', a: 'a', b: 'b'}, 'can extend from multiple source objects');
+	result = _.extendOwn({x: 'x'}, {a: 'a', x: 2}, {a: 'b'});
+	assert.deepEqual(result, {x: 2, a: 'b'}, 'extending from multiple source objects last property trumps');
+	assert.deepEqual(_.extendOwn({}, {a: void 0, b: null}), {a: void 0, b: null}, 'copies undefined values');
+
+	var F = function() {};
+	F.prototype = {a: 'b'};
+	var subObj = new F();
+	subObj.c = 'd';
+	assert.deepEqual(_.extendOwn({}, subObj), {c: 'd'}, 'copies own properties from source');
+
+	result = {};
+	assert.deepEqual(_.extendOwn(result, null, void 0, {a: 1}), {a: 1}, 'should not error on `null` or `undefined` sources');
+
+	_.each(['a', 5, null, false], function(val) {
+		assert.strictEqual(_.extendOwn(val, {a: 1}), val, 'extending non-objects results in returning the non-object value');
+	});
+
+	assert.strictEqual(_.extendOwn(void 0, {a: 1}), void 0, 'extending undefined results in undefined');
+
+	result = _.extendOwn({a: 1, 0: 2, 1: '5', length: 6}, {0: 1, 1: 2, length: 2});
+	assert.deepEqual(result, {a: 1, 0: 1, 1: 2, length: 2}, 'should treat array-like objects like normal objects');
+});
+
 QUnit.test('pick', function(assert) {
 	var result;
 	result = _.pick({a: 1, b: 2, c: 3}, 'a', 'c');
@@ -139,270 +211,45 @@ QUnit.test('pick', function(assert) {
 	});
 });
 
-if (typeof document === 'object') {
-	QUnit.test('isElement', function(assert) {
-		assert.notOk(_.isElement('div'), 'strings are not dom elements');
-		assert.ok(_.isElement(testElement), 'an element is a DOM element');
-	});
-}
+QUnit.test('defaults', function(assert) {
+	var options = {zero: 0, one: 1, empty: '', nan: NaN, nothing: null};
 
-QUnit.test('isArguments', function(assert) {
-	var args = (function(){ return arguments; }(1, 2, 3));
-	assert.notOk(_.isArguments('string'), 'a string is not an arguments object');
-	assert.notOk(_.isArguments(_.isArguments), 'a function is not an arguments object');
-	assert.ok(_.isArguments(args), 'but the arguments object is an arguments object');
-	assert.notOk(_.isArguments([args]), 'but not when it\'s converted into an array');
-	assert.notOk(_.isArguments([1, 2, 3]), 'and not vanilla arrays.');
+	_.defaults(options, {zero: 1, one: 10, twenty: 20, nothing: 'str'});
+	assert.strictEqual(options.zero, 0, 'value exists');
+	assert.strictEqual(options.one, 1, 'value exists');
+	assert.strictEqual(options.twenty, 20, 'default applied');
+	assert.strictEqual(options.nothing, null, "null isn't overridden");
+
+	_.defaults(options, {empty: 'full'}, {nan: 'nan'}, {word: 'word'}, {word: 'dog'});
+	assert.strictEqual(options.empty, '', 'value exists');
+	assert.ok(_.isNaN(options.nan), "NaN isn't overridden");
+	assert.strictEqual(options.word, 'word', 'new value is added, first one wins');
+
+	try {
+		options = {};
+		_.defaults(options, null, void 0, {a: 1});
+	} catch (e) { /* ignored */ }
+
+	assert.strictEqual(options.a, 1, 'should not error on `null` or `undefined` sources');
+
+	assert.deepEqual(_.defaults(null, {a: 1}), {a: 1}, 'defaults skips nulls');
+	assert.deepEqual(_.defaults(void 0, {a: 1}), {a: 1}, 'defaults skips undefined');
 });
 
-QUnit.test('isObject', function(assert) {
-	assert.ok(_.isObject(arguments), 'the arguments object is object');
-	assert.ok(_.isObject([1, 2, 3]), 'and arrays');
-	if (testElement) {
-		assert.ok(_.isObject(testElement), 'and DOM element');
-	}
-	assert.ok(_.isObject(function() {}), 'and functions');
-	assert.notOk(_.isObject(null), 'but not null');
-	assert.notOk(_.isObject(void 0), 'and not undefined');
-	assert.notOk(_.isObject('string'), 'and not string');
-	assert.notOk(_.isObject(12), 'and not number');
-	assert.notOk(_.isObject(true), 'and not boolean');
-	assert.ok(_.isObject(new String('string')), 'but new String()');
-});
+QUnit.test('clone', function(assert) {
+	var moe = {name: 'moe', lucky: [13, 27, 34]};
+	var clone = _.clone(moe);
+	assert.strictEqual(clone.name, 'moe', 'the clone as the attributes of the original');
 
+	clone.name = 'curly';
+	assert.ok(clone.name === 'curly' && moe.name === 'moe', 'clones can change shallow attributes without affecting the original');
 
-QUnit.test('isArray', function(assert) {
-	assert.notOk(_.isArray(void 0), 'undefined vars are not arrays');
-	assert.notOk(_.isArray(arguments), 'the arguments object is not an array');
-	assert.ok(_.isArray([1, 2, 3]), 'but arrays are');
-});
+	clone.lucky.push(101);
+	assert.strictEqual(underscore.last(moe.lucky), 101, 'changes to deep attributes are shared with the original');
 
-QUnit.test('isString', function(assert) {
-	var obj = new String('I am a string object');
-	if (testElement) {
-		assert.notOk(_.isString(testElement), 'an element is not a string');
-	}
-	assert.ok(_.isString([1, 2, 3].join(', ')), 'but strings are');
-	assert.strictEqual(_.isString('I am a string literal'), true, 'string literals are');
-	assert.ok(_.isString(obj), 'so are String objects');
-	assert.strictEqual(_.isString(1), false);
-});
-
-QUnit.test('isSymbol', function(assert) {
-	assert.notOk(_.isSymbol(0), 'numbers are not symbols');
-	assert.notOk(_.isSymbol(''), 'strings are not symbols');
-	assert.notOk(_.isSymbol(_.isSymbol), 'functions are not symbols');
-	if (typeof Symbol === 'function') {
-		assert.ok(_.isSymbol(Symbol()), 'symbols are symbols');
-		assert.ok(_.isSymbol(Symbol('description')), 'described symbols are symbols');
-		assert.ok(_.isSymbol(Object(Symbol())), 'boxed symbols are symbols');
-	}
-});
-
-QUnit.test('isNumber', function(assert) {
-	assert.notOk(_.isNumber('string'), 'a string is not a number');
-	assert.notOk(_.isNumber(arguments), 'the arguments object is not a number');
-	assert.notOk(_.isNumber(void 0), 'undefined is not a number');
-	assert.ok(_.isNumber(3 * 4 - 7 / 10), 'but numbers are');
-	assert.ok(_.isNumber(NaN), 'NaN *is* a number');
-	assert.ok(_.isNumber(Infinity), 'Infinity is a number');
-	assert.notOk(_.isNumber('1'), 'numeric strings are not numbers');
-});
-
-QUnit.test('isBoolean', function(assert) {
-	assert.notOk(_.isBoolean(2), 'a number is not a boolean');
-	assert.notOk(_.isBoolean('string'), 'a string is not a boolean');
-	assert.notOk(_.isBoolean('false'), 'the string "false" is not a boolean');
-	assert.notOk(_.isBoolean('true'), 'the string "true" is not a boolean');
-	assert.notOk(_.isBoolean(arguments), 'the arguments object is not a boolean');
-	assert.notOk(_.isBoolean(void 0), 'undefined is not a boolean');
-	assert.notOk(_.isBoolean(NaN), 'NaN is not a boolean');
-	assert.notOk(_.isBoolean(null), 'null is not a boolean');
-	assert.ok(_.isBoolean(true), 'but true is');
-	assert.ok(_.isBoolean(false), 'and so is false');
-});
-
-QUnit.test('isMap', function(assert) {
-	assert.notOk(_.isMap('string'), 'a string is not a map');
-	assert.notOk(_.isMap(2), 'a number is not a map');
-	assert.notOk(_.isMap({}), 'an object is not a map');
-	assert.notOk(_.isMap(false), 'a boolean is not a map');
-	assert.notOk(_.isMap(void 0), 'undefined is not a map');
-	assert.notOk(_.isMap([1, 2, 3]), 'an array is not a map');
-	if (typeof Set === 'function') {
-		assert.notOk(_.isMap(new Set()), 'a set is not a map');
-	}
-	if (typeof WeakSet === 'function') {
-		assert.notOk(_.isMap(new WeakSet()), 'a weakset is not a map');
-	}
-	if (typeof WeakMap === 'function') {
-		assert.notOk(_.isMap(new WeakMap()), 'a weakmap is not a map');
-	}
-	if (typeof Map === 'function') {
-		var keyString = 'a string';
-		var obj = new Map();
-		obj.set(keyString, 'value');
-		assert.ok(_.isMap(obj), 'but a map is');
-	}
-});
-
-
-QUnit.test('isWeakMap', function(assert) {
-	assert.notOk(_.isWeakMap('string'), 'a string is not a weakmap');
-	assert.notOk(_.isWeakMap(2), 'a number is not a weakmap');
-	assert.notOk(_.isWeakMap({}), 'an object is not a weakmap');
-	assert.notOk(_.isWeakMap(false), 'a boolean is not a weakmap');
-	assert.notOk(_.isWeakMap(void 0), 'undefined is not a weakmap');
-	assert.notOk(_.isWeakMap([1, 2, 3]), 'an array is not a weakmap');
-	if (typeof Set === 'function') {
-		assert.notOk(_.isWeakMap(new Set()), 'a set is not a weakmap');
-	}
-	if (typeof WeakSet === 'function') {
-		assert.notOk(_.isWeakMap(new WeakSet()), 'a weakset is not a weakmap');
-	}
-	if (typeof Map === 'function') {
-		assert.notOk(_.isWeakMap(new Map()), 'a map is not a weakmap');
-	}
-	if (typeof WeakMap === 'function') {
-		var keyObj = {}, obj = new WeakMap();
-		obj.set(keyObj, 'value');
-		assert.ok(_.isWeakMap(obj), 'but a weakmap is');
-	}
-});
-
-QUnit.test('isSet', function(assert) {
-	assert.notOk(_.isSet('string'), 'a string is not a set');
-	assert.notOk(_.isSet(2), 'a number is not a set');
-	assert.notOk(_.isSet({}), 'an object is not a set');
-	assert.notOk(_.isSet(false), 'a boolean is not a set');
-	assert.notOk(_.isSet(void 0), 'undefined is not a set');
-	assert.notOk(_.isSet([1, 2, 3]), 'an array is not a set');
-	if (typeof Map === 'function') {
-		assert.notOk(_.isSet(new Map()), 'a map is not a set');
-	}
-	if (typeof WeakMap === 'function') {
-		assert.notOk(_.isSet(new WeakMap()), 'a weakmap is not a set');
-	}
-	if (typeof WeakSet === 'function') {
-		assert.notOk(_.isSet(new WeakSet()), 'a weakset is not a set');
-	}
-	if (typeof Set === 'function') {
-		var obj = new Set();
-		obj.add(1).add('string').add(false).add({});
-		assert.ok(_.isSet(obj), 'but a set is');
-	}
-});
-
-QUnit.test('isWeakSet', function(assert) {
-	assert.notOk(_.isWeakSet('string'), 'a string is not a weakset');
-	assert.notOk(_.isWeakSet(2), 'a number is not a weakset');
-	assert.notOk(_.isWeakSet({}), 'an object is not a weakset');
-	assert.notOk(_.isWeakSet(false), 'a boolean is not a weakset');
-	assert.notOk(_.isWeakSet(void 0), 'undefined is not a weakset');
-	assert.notOk(_.isWeakSet([1, 2, 3]), 'an array is not a weakset');
-	if (typeof Map === 'function') {
-		assert.notOk(_.isWeakSet(new Map()), 'a map is not a weakset');
-	}
-	if (typeof WeakMap === 'function') {
-		assert.notOk(_.isWeakSet(new WeakMap()), 'a weakmap is not a weakset');
-	}
-	if (typeof Set === 'function') {
-		assert.notOk(_.isWeakSet(new Set()), 'a set is not a weakset');
-	}
-	if (typeof WeakSet === 'function') {
-		var obj = new WeakSet();
-		obj.add({x: 1}, {y: 'string'}).add({y: 'string'}).add({z: [1, 2, 3]});
-		assert.ok(_.isWeakSet(obj), 'but a weakset is');
-	}
-});
-
-QUnit.test('isFunction', function(assert) {
-	assert.notOk(_.isFunction(void 0), 'undefined vars are not functions');
-	assert.notOk(_.isFunction([1, 2, 3]), 'arrays are not functions');
-	assert.notOk(_.isFunction('moe'), 'strings are not functions');
-	assert.ok(_.isFunction(_.isFunction), 'but functions are');
-	assert.ok(_.isFunction(function(){}), 'even anonymous ones');
-
-	if (testElement) {
-		assert.notOk(_.isFunction(testElement), 'elements are not functions');
-	}
-
-	var nodelist = typeof document != 'undefined' && document.childNodes;
-	if (nodelist) {
-		assert.notOk(_.isFunction(nodelist));
-	}
-});
-
-QUnit.test('isDate', function(assert) {
-	assert.notOk(_.isDate(100), 'numbers are not dates');
-	assert.notOk(_.isDate({}), 'objects are not dates');
-	assert.ok(_.isDate(new Date()), 'but dates are');
-});
-
-QUnit.test('isRegExp', function(assert) {
-	assert.notOk(_.isRegExp(_.identity), 'functions are not RegExps');
-	assert.ok(_.isRegExp(/identity/), 'but RegExps are');
-});
-
-QUnit.test('isFinite', function(assert) {
-	assert.notOk(_.isFinite(void 0), 'undefined is not finite');
-	assert.notOk(_.isFinite(null), 'null is not finite');
-	assert.notOk(_.isFinite(NaN), 'NaN is not finite');
-	assert.notOk(_.isFinite(Infinity), 'Infinity is not finite');
-	assert.notOk(_.isFinite(-Infinity), '-Infinity is not finite');
-	assert.ok(_.isFinite('12'), 'Numeric strings are numbers');
-	assert.notOk(_.isFinite('1a'), 'Non numeric strings are not numbers');
-	assert.notOk(_.isFinite(''), 'Empty strings are not numbers');
-	var obj = new Number(5);
-	assert.ok(_.isFinite(obj), 'Number instances can be finite');
-	assert.ok(_.isFinite(0), '0 is finite');
-	assert.ok(_.isFinite(123), 'Ints are finite');
-	assert.ok(_.isFinite(-12.44), 'Floats are finite');
-	/*if (typeof Symbol === 'function') {
-		assert.notOk(_.isFinite(Symbol()), 'symbols are not numbers');
-		assert.notOk(_.isFinite(Symbol('description')), 'described symbols are not numbers');
-		assert.notOk(_.isFinite(Object(Symbol())), 'boxed symbols are not numbers');
-	}*/
-});
-
-QUnit.test('isNaN', function(assert) {
-	assert.notOk(_.isNaN(void 0), 'undefined is not NaN');
-	assert.notOk(_.isNaN(null), 'null is not NaN');
-	assert.notOk(_.isNaN(0), '0 is not NaN');
-	assert.notOk(_.isNaN(new Number(0)), 'wrapped 0 is not NaN');
-	assert.ok(_.isNaN(NaN), 'but NaN is');
-	assert.ok(_.isNaN(new Number(NaN)), 'wrapped NaN is still NaN');
-	if (typeof Symbol !== 'undefined'){
-		assert.notOk(_.isNaN(Symbol()), 'symbol is not NaN');
-	}
-});
-
-QUnit.test('isNull', function(assert) {
-	assert.notOk(_.isNull(void 0), 'undefined is not null');
-	assert.notOk(_.isNull(NaN), 'NaN is not null');
-	assert.ok(_.isNull(null), 'but null is');
-});
-
-QUnit.test('isUndefined', function(assert) {
-	assert.notOk(_.isUndefined(1), 'numbers are defined');
-	assert.notOk(_.isUndefined(null), 'null is defined');
-	assert.notOk(_.isUndefined(false), 'false is defined');
-	assert.notOk(_.isUndefined(NaN), 'NaN is defined');
-	assert.ok(_.isUndefined(), 'nothing is undefined');
-	assert.ok(_.isUndefined(void 0), 'undefined is undefined');
-});
-
-QUnit.test('isError', function(assert) {
-	assert.notOk(_.isError(1), 'numbers are not Errors');
-	assert.notOk(_.isError(null), 'null is not an Error');
-	assert.notOk(_.isError(Error), 'functions are not Errors');
-	assert.ok(_.isError(new Error()), 'Errors are Errors');
-	assert.ok(_.isError(new EvalError()), 'EvalErrors are Errors');
-	assert.ok(_.isError(new RangeError()), 'RangeErrors are Errors');
-	assert.ok(_.isError(new ReferenceError()), 'ReferenceErrors are Errors');
-	assert.ok(_.isError(new SyntaxError()), 'SyntaxErrors are Errors');
-	assert.ok(_.isError(new TypeError()), 'TypeErrors are Errors');
-	assert.ok(_.isError(new URIError()), 'URIErrors are Errors');
+	assert.strictEqual(_.clone(void 0), void 0, 'non objects should not be changed by clone');
+	assert.strictEqual(_.clone(1), 1, 'non objects should not be changed by clone');
+	assert.strictEqual(_.clone(null), null, 'non objects should not be changed by clone');
 });
 
 QUnit.test('has', function(assert) {
@@ -422,4 +269,161 @@ QUnit.test('has', function(assert) {
 	assert.notOk(_.has({a: child}, ['a', 'foo']), 'does not check the prototype of nested props.');
 });
 
+QUnit.test( "extendDeep(Object, Object)", function( assert ) {
+	assert.expect( 28 );
 
+	var empty, optionsWithLength, optionsWithDate, myKlass,
+		customObject, optionsWithCustomObject, MyNumber, ret,
+		nullUndef, target, recursive, obj,
+		defaults, defaultsCopy, options1, options1Copy, options2, options2Copy, merged2,
+		settings = { "xnumber1": 5, "xnumber2": 7, "xstring1": "peter", "xstring2": "pan" },
+		options = { "xnumber2": 1, "xstring2": "x", "xxx": "newstring" },
+		optionsCopy = { "xnumber2": 1, "xstring2": "x", "xxx": "newstring" },
+		merged = { "xnumber1": 5, "xnumber2": 1, "xstring1": "peter", "xstring2": "x", "xxx": "newstring" },
+		deep1 = { "foo": { "bar": true } },
+		deep2 = { "foo": { "baz": true }, "foo2": document },
+		deep2copy = { "foo": { "baz": true }, "foo2": document },
+		deepmerged = { "foo": { "bar": true, "baz": true }, "foo2": document },
+		arr = [ 1, 2, 3 ],
+		nestedarray = { "arr": arr };
+
+	_.extendDeep(settings, options);
+	assert.deepEqual( settings, merged, "Check if extended: settings must be extended" );
+	assert.deepEqual( options, optionsCopy, "Check if not modified: options must not be modified" );
+
+	_.extendDeep( settings, null, options );
+	assert.deepEqual( settings, merged, "Check if extended: settings must be extended" );
+	assert.deepEqual( options, optionsCopy, "Check if not modified: options must not be modified" );
+
+	_.extendDeep( deep1, deep2 );
+	assert.deepEqual( deep1[ "foo" ], deepmerged[ "foo" ], "Check if foo: settings must be extended" );
+	assert.deepEqual( deep2[ "foo" ], deep2copy[ "foo" ], "Check if not deep2: options must not be modified" );
+	assert.equal( deep1[ "foo2" ], document, "Make sure that a deep clone was not attempted on the document" );
+
+	assert.ok( _.extendDeep( {}, nestedarray )[ "arr" ] !== arr, "Deep extend of object must clone child array" );
+
+	// #5991
+	assert.ok( _.isArray( _.extendDeep({ "arr": {} }, nestedarray )[ "arr" ] ), "Cloned array have to be an Array" );
+	assert.ok( _.isPlainObject( _.extendDeep({ "arr": arr }, { "arr": {} } )[ "arr" ] ), "Cloned object have to be an plain object" );
+
+	empty = {};
+	optionsWithLength = { "foo": { "length": -1 } };
+	_.extendDeep(empty, optionsWithLength );
+	assert.deepEqual( empty[ "foo" ], optionsWithLength[ "foo" ], "The length property must copy correctly" );
+
+	empty = {};
+	optionsWithDate = { "foo": { "date": new Date() } };
+	_.extendDeep( empty, optionsWithDate );
+	assert.deepEqual( empty[ "foo" ], optionsWithDate[ "foo" ], "Dates copy correctly" );
+
+	/** @constructor */
+	myKlass = function() {};
+	customObject = new myKlass();
+	optionsWithCustomObject = { "foo": { "date": customObject } };
+	empty = {};
+	_.extendDeep( empty, optionsWithCustomObject );
+	assert.ok( empty[ "foo" ] && empty[ "foo" ][ "date" ] === customObject, "Custom objects copy correctly (no methods)" );
+
+	// Makes the class a little more realistic
+	myKlass.prototype = { "someMethod": function() {} };
+	empty = {};
+	_.extendDeep( empty, optionsWithCustomObject );
+	assert.ok( empty[ "foo" ] && empty[ "foo" ][ "date" ] === customObject, "Custom objects copy correctly" );
+
+	MyNumber = Number;
+
+	ret = _.extendDeep( { "foo": 4 }, { "foo": new MyNumber( 5 ) } );
+	assert.ok( parseInt( ret.foo, 10 ) === 5, "Wrapped numbers copy correctly" );
+
+	nullUndef = _.extendDeep( {}, options, { "xnumber2": null } );
+	assert.ok( nullUndef[ "xnumber2" ] === null, "Check to make sure null values are copied" );
+
+	nullUndef = _.extendDeep( {}, options, { "xnumber2": undefined } );
+	assert.ok( nullUndef[ "xnumber2" ] === undefined, "Check to make sure undefined values are copied" );
+
+	nullUndef = _.extendDeep( {}, options, { "xnumber0": null } );
+	assert.ok( nullUndef[ "xnumber0" ] === null, "Check to make sure null values are inserted" );
+
+	target = {};
+	recursive = { foo:target, bar:5 };
+	_.extendDeep( target, recursive );
+	assert.deepEqual( target, { bar:5 }, "Check to make sure a recursive obj doesn't go never-ending loop by not copying it over" );
+
+	ret = _.extendDeep( { foo: [] }, { foo: [ 0 ] } ); // 1907
+	assert.equal( ret.foo.length, 1, "Check to make sure a value with coercion 'false' copies over when necessary to fix #1907" );
+
+	ret = _.extendDeep( { foo: "1,2,3" }, { foo: [ 1, 2, 3 ] } );
+	assert.ok( typeof ret.foo !== "string", "Check to make sure values equal with coercion (but not actually equal) overwrite correctly" );
+
+	ret = _.extendDeep( { foo:"bar" }, { foo:null } );
+	assert.ok( typeof ret.foo !== "undefined", "Make sure a null value doesn't crash with deep extend, for #1908" );
+
+	obj = { foo:null };
+	_.extendDeep( obj, { foo:"notnull" } );
+	assert.equal( obj.foo, "notnull", "Make sure a null value can be overwritten" );
+
+	function func() {}
+	_.extendDeep( func, { key: "value" } );
+	assert.equal( func.key, "value", "Verify a function can be extended" );
+
+	defaults = { xnumber1: 5, xnumber2: 7, xstring1: "peter", xstring2: "pan" };
+	defaultsCopy = { xnumber1: 5, xnumber2: 7, xstring1: "peter", xstring2: "pan" };
+	options1 = { xnumber2: 1, xstring2: "x" };
+	options1Copy = { xnumber2: 1, xstring2: "x" };
+	options2 = { xstring2: "xx", xxx: "newstringx" };
+	options2Copy = { xstring2: "xx", xxx: "newstringx" };
+	merged2 = { xnumber1: 5, xnumber2: 1, xstring1: "peter", xstring2: "xx", xxx: "newstringx" };
+
+	settings = _.extendDeep( {}, defaults, options1, options2 );
+	assert.deepEqual( settings, merged2, "Check if extended: settings must be extended" );
+	assert.deepEqual( defaults, defaultsCopy, "Check if not modified: options1 must not be modified" );
+	assert.deepEqual( options1, options1Copy, "Check if not modified: options1 must not be modified" );
+	assert.deepEqual( options2, options2Copy, "Check if not modified: options2 must not be modified" );
+} );
+
+
+QUnit[Object.defineProperties ? 'test' : 'skip']("extendDeep(Object, Object {created with \"defineProperties\"})", function( assert ) {
+	assert.expect(2);
+
+	var definedObj = Object.defineProperties( {}, {
+		"enumerableProp": {
+			get: function() {
+				return true;
+			},
+			enumerable: true
+		},
+		"nonenumerableProp": {
+			get: function() {
+				return true;
+			}
+		}
+	} ),
+	accessorObj = {};
+
+	_.extendDeep( accessorObj, definedObj );
+	assert.equal( accessorObj.enumerableProp, true, "Verify that getters are transferred" );
+	assert.equal( accessorObj.nonenumerableProp, undefined, "Verify that non-enumerable getters are ignored" );
+});
+
+QUnit.test("extendDeep(true,{},{a:[], o:{}}); deep copy with array, followed by object", function( assert ) {
+	assert.expect( 2 );
+
+	var result, initial = {
+
+		// This will make "copyIsArray" true
+		array: [ 1, 2, 3, 4 ],
+
+		// If "copyIsArray" doesn't get reset to false, the check
+		// will evaluate true and enter the array copy block
+		// instead of the object copy block. Since the ternary in the
+		// "copyIsArray" block will evaluate to false
+		// (check if operating on an array with ), this will be
+		// replaced by an empty array.
+		object: {}
+	};
+
+	result = _.extendDeep( {}, initial );
+
+	assert.deepEqual( result, initial, "The [result] and [initial] have equal shape and values" );
+	assert.ok( !_.isArray( result.object ), "result.object wasn't paved with an empty array" );
+} );

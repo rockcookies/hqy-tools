@@ -1,7 +1,12 @@
+var underscore = require('underscore');
+
 var templateFunc = require('../utility/template');
 
-var _ = require('./test-mixin')({}, {
+var _ = {
 	each: require('../collection/each'),
+	extend: require('../objects/extend'),
+	clone: require('../objects/clone'),
+	range: require('../arrays/range'),
 
 	noop: require('../utility/noop'),
 	constant: require('../utility/constant'),
@@ -10,32 +15,21 @@ var _ = require('./test-mixin')({}, {
 	random: require('../utility/random'),
 	templateSettings: require('../utility/templateSettings'),
 	template: function (text, settings) {
-		settings = settings || {};
+		settings = _.extend({}, _.templateSettings, settings || {});
 
-		settings.escape = settings.escape || _.templateSettings.escape;
-		settings.interpolate = settings.interpolate || _.templateSettings.interpolate;
-		settings.evaluate = settings.evaluate || _.templateSettings.evaluate;
-		settings.variable = settings.variable || _.templateSettings.variable;
 		settings._ = {
 			each: _.each
 		};
 
 		return templateFunc(text, settings);
 	}
-});
+};
 
 var templateSettings;
 
-QUnit.module('Utility', {
+QUnit.module('Tools.Utility', {
 	beforeEach: function() {
-		var settings = {};
-		templateSettings = {};
-
-		_.each(_.templateSettings, function (v, k) {
-			templateSettings[k] = settings[k] = v;
-		});
-
-		_.templateSettings = settings;
+		templateSettings = _.clone(_.templateSettings);
 	},
 
 	afterEach: function() {
@@ -50,6 +44,20 @@ QUnit.test('constant', function(assert) {
 
 QUnit.test('noop', function(assert) {
 	assert.strictEqual(_.noop('curly', 'larry', 'moe'), void 0, 'should always return undefined');
+});
+
+QUnit.test('random', function(assert) {
+	var array = _.range(1000);
+	var min = Math.pow(2, 31);
+	var max = Math.pow(2, 62);
+
+	assert.ok(underscore.every(array, function() {
+		return _.random(min, max) >= min;
+	}), 'should produce a random number greater than or equal to the minimum number');
+
+	assert.ok(underscore.some(array, function() {
+		return _.random(Number.MAX_VALUE) > 0;
+	}), 'should produce a random number when passed `Number.MAX_VALUE`');
 });
 
 QUnit.test('now', function(assert) {
@@ -228,7 +236,6 @@ QUnit.test('#556 - undefined template variables.', function(assert) {
 	assert.strictEqual(templateWithPropertyEscaped({x: {}}), '');
 });
 
-
 QUnit.test('interpolate evaluates code only once.', function(assert) {
 	assert.expect(2);
 	var count = 0;
@@ -252,4 +259,3 @@ QUnit.test('#779 - delimiters are applied to unescaped text.', function(assert) 
 	var template = _.template('<<\nx\n>>', null, {evaluate: /<<(.*?)>>/g});
 	assert.strictEqual(template(), '<<\nx\n>>');
 });
-
