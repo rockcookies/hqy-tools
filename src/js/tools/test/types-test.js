@@ -1,7 +1,6 @@
 var underscore = require('underscore');
 
 var _ = {
-	isWeakSet: require('../types/isWeakSet.js'),
 	isArguments: require('../types/isArguments.js'),
 	isArray: require('../types/isArray.js'),
 	isBoolean: require('../types/isBoolean.js'),
@@ -10,17 +9,14 @@ var _ = {
 	isError: require('../types/isError.js'),
 	isFinite: require('../types/isFinite.js'),
 	isFunction: require('../types/isFunction.js'),
-	isMap: require('../types/isMap.js'),
 	isNaN: require('../types/isNaN.js'),
 	isNull: require('../types/isNull.js'),
 	isNumber: require('../types/isNumber.js'),
 	isObject: require('../types/isObject.js'),
 	isRegExp: require('../types/isRegExp.js'),
-	isSet: require('../types/isSet.js'),
 	isString: require('../types/isString.js'),
 	isSymbol: require('../types/isSymbol.js'),
 	isUndefined: require('../types/isUndefined.js'),
-	isWeakMap: require('../types/isWeakMap.js'),
 	isPlainObject: require('../types/isPlainObject.js')
 };
 
@@ -110,100 +106,6 @@ QUnit.test('isBoolean', function(assert) {
 	assert.notOk(_.isBoolean(null), 'null is not a boolean');
 	assert.ok(_.isBoolean(true), 'but true is');
 	assert.ok(_.isBoolean(false), 'and so is false');
-});
-
-QUnit.test('isMap', function(assert) {
-	assert.notOk(_.isMap('string'), 'a string is not a map');
-	assert.notOk(_.isMap(2), 'a number is not a map');
-	assert.notOk(_.isMap({}), 'an object is not a map');
-	assert.notOk(_.isMap(false), 'a boolean is not a map');
-	assert.notOk(_.isMap(void 0), 'undefined is not a map');
-	assert.notOk(_.isMap([1, 2, 3]), 'an array is not a map');
-	if (typeof Set === 'function') {
-		assert.notOk(_.isMap(new Set()), 'a set is not a map');
-	}
-	if (typeof WeakSet === 'function') {
-		assert.notOk(_.isMap(new WeakSet()), 'a weakset is not a map');
-	}
-	if (typeof WeakMap === 'function') {
-		assert.notOk(_.isMap(new WeakMap()), 'a weakmap is not a map');
-	}
-	if (typeof Map === 'function') {
-		var keyString = 'a string';
-		var obj = new Map();
-		obj.set(keyString, 'value');
-		assert.ok(_.isMap(obj), 'but a map is');
-	}
-});
-
-QUnit.test('isWeakMap', function(assert) {
-	assert.notOk(_.isWeakMap('string'), 'a string is not a weakmap');
-	assert.notOk(_.isWeakMap(2), 'a number is not a weakmap');
-	assert.notOk(_.isWeakMap({}), 'an object is not a weakmap');
-	assert.notOk(_.isWeakMap(false), 'a boolean is not a weakmap');
-	assert.notOk(_.isWeakMap(void 0), 'undefined is not a weakmap');
-	assert.notOk(_.isWeakMap([1, 2, 3]), 'an array is not a weakmap');
-	if (typeof Set === 'function') {
-		assert.notOk(_.isWeakMap(new Set()), 'a set is not a weakmap');
-	}
-	if (typeof WeakSet === 'function') {
-		assert.notOk(_.isWeakMap(new WeakSet()), 'a weakset is not a weakmap');
-	}
-	if (typeof Map === 'function') {
-		assert.notOk(_.isWeakMap(new Map()), 'a map is not a weakmap');
-	}
-	if (typeof WeakMap === 'function') {
-		var keyObj = {}, obj = new WeakMap();
-		obj.set(keyObj, 'value');
-		assert.ok(_.isWeakMap(obj), 'but a weakmap is');
-	}
-});
-
-QUnit.test('isSet', function(assert) {
-	assert.notOk(_.isSet('string'), 'a string is not a set');
-	assert.notOk(_.isSet(2), 'a number is not a set');
-	assert.notOk(_.isSet({}), 'an object is not a set');
-	assert.notOk(_.isSet(false), 'a boolean is not a set');
-	assert.notOk(_.isSet(void 0), 'undefined is not a set');
-	assert.notOk(_.isSet([1, 2, 3]), 'an array is not a set');
-	if (typeof Map === 'function') {
-		assert.notOk(_.isSet(new Map()), 'a map is not a set');
-	}
-	if (typeof WeakMap === 'function') {
-		assert.notOk(_.isSet(new WeakMap()), 'a weakmap is not a set');
-	}
-	if (typeof WeakSet === 'function') {
-		assert.notOk(_.isSet(new WeakSet()), 'a weakset is not a set');
-	}
-	if (typeof Set === 'function') {
-		var obj = new Set();
-		obj.add(1).add('string').add(false).add({});
-		assert.ok(_.isSet(obj), 'but a set is');
-	}
-});
-
-QUnit.test('isWeakSet', function(assert) {
-
-	assert.notOk(_.isWeakSet('string'), 'a string is not a weakset');
-	assert.notOk(_.isWeakSet(2), 'a number is not a weakset');
-	assert.notOk(_.isWeakSet({}), 'an object is not a weakset');
-	assert.notOk(_.isWeakSet(false), 'a boolean is not a weakset');
-	assert.notOk(_.isWeakSet(void 0), 'undefined is not a weakset');
-	assert.notOk(_.isWeakSet([1, 2, 3]), 'an array is not a weakset');
-	if (typeof Map === 'function') {
-		assert.notOk(_.isWeakSet(new Map()), 'a map is not a weakset');
-	}
-	if (typeof WeakMap === 'function') {
-		assert.notOk(_.isWeakSet(new WeakMap()), 'a weakmap is not a weakset');
-	}
-	if (typeof Set === 'function') {
-		assert.notOk(_.isWeakSet(new Set()), 'a set is not a weakset');
-	}
-	if (typeof WeakSet === 'function') {
-		var obj = new WeakSet();
-		obj.add({x: 1}, {y: 'string'}).add({y: 'string'}).add({z: [1, 2, 3]});
-		assert.ok(_.isWeakSet(obj), 'but a weakset is');
-	}
 });
 
 QUnit.test('isFunction', function(assert) {
