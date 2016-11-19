@@ -2,10 +2,13 @@ var underscore = require('underscore');
 
 var _ = {
 	each: require('../collection/each'),
+	map: require('../collection/map'),
+	filter: require('../collection/filter'),
 	constant: require('../utility/constant'),
 	isNaN: require('../types/isNaN'),
 	isArray: require('../types/isArray'),
 	isPlainObject: require('../types/isPlainObject'),
+	partial: require('../functions/partial'),
 
 	keys: require('../objects/keys'),
 	allKeys: require('../objects/allKeys'),
@@ -15,10 +18,15 @@ var _ = {
 	extendOwn: require('../objects/assign'),
 	assign: require('../objects/assign'),
 	defaults: require('../objects/defaults'),
+	property: require('../objects/property'),
+	propertyOf: require('../objects/propertyOf'),
+	matcher: require('../objects/matcher'),
+	isMatch: require('../objects/isMatch'),
 	clone: require('../objects/clone'),
 	has: require('../objects/has'),
 	invert: require('../objects/invert'),
-	pick: require('../objects/pick')
+	pick: require('../objects/pick'),
+	omit: require('../objects/omit')
 };
 
 
@@ -211,6 +219,41 @@ QUnit.test('pick', function(assert) {
 	});
 });
 
+QUnit.test('omit', function(assert) {
+	var result;
+	result = _.omit({a: 1, b: 2, c: 3}, 'b');
+	assert.deepEqual(result, {a: 1, c: 3}, 'can omit a single named property');
+	result = _.omit({a: 1, b: 2, c: 3}, 'a', 'c');
+	assert.deepEqual(result, {b: 2}, 'can omit several named properties');
+	result = _.omit({a: 1, b: 2, c: 3}, ['b', 'c']);
+	assert.deepEqual(result, {a: 1}, 'can omit properties named in an array');
+	result = _.omit(['a', 'b'], 0);
+	assert.deepEqual(result, {1: 'b'}, 'can omit numeric properties');
+
+	assert.deepEqual(_.omit(null, 'a', 'b'), {}, 'non objects return empty object');
+	assert.deepEqual(_.omit(void 0, 'toString'), {}, 'null/undefined return empty object');
+	assert.deepEqual(_.omit(5, 'toString', 'b'), {}, 'returns empty object for primitives');
+
+	var data = {a: 1, b: 2, c: 3};
+	var callback = function(value, key, object) {
+		assert.strictEqual(key, {1: 'a', 2: 'b', 3: 'c'}[value]);
+		assert.strictEqual(object, data);
+		return value !== this.value;
+	};
+	result = _.omit(data, callback, {value: 2});
+	assert.deepEqual(result, {b: 2}, 'can accept a predicate');
+
+	var Obj = function(){};
+	Obj.prototype = {a: 1, b: 2, c: 3};
+	var instance = new Obj();
+	assert.deepEqual(_.omit(instance, 'b'), {a: 1, c: 3}, 'include prototype props');
+
+	assert.deepEqual(_.omit(data, function(val, key) {
+		return this[key] === 3 && this === instance;
+	}, instance), {a: 1, b: 2}, 'function is given context');
+});
+
+
 QUnit.test('defaults', function(assert) {
 	var options = {zero: 0, one: 1, empty: '', nan: NaN, nothing: null};
 
@@ -268,6 +311,146 @@ QUnit.test('has', function(assert) {
 	assert.ok(_.has({a: {b: 'foo'}}, ['a', 'b']), 'can check for nested properties.');
 	assert.notOk(_.has({a: child}, ['a', 'foo']), 'does not check the prototype of nested props.');
 });
+
+
+QUnit.test('property', function(assert) {
+	var stooge = {name: 'moe'};
+	assert.strictEqual(_.property('name')(stooge), 'moe', 'should return the property with the given name');
+	assert.strictEqual(_.property('name')(null), void 0, 'should return undefined for null values');
+	assert.strictEqual(_.property('name')(void 0), void 0, 'should return undefined for undefined values');
+	assert.strictEqual(_.property(null)('foo'), void 0, 'should return undefined for null object');
+	assert.strictEqual(_.property('x')({x: null}), null, 'can fetch null values');
+	assert.strictEqual(_.property('length')(null), void 0, 'does not crash on property access of non-objects');
+
+	// Deep property access
+	assert.strictEqual(_.property('a')({a: 1}), 1, 'can get a direct property');
+	assert.strictEqual(_.property(['a', 'b'])({a: {b: 2}}), 2, 'can get a nested property');
+	assert.strictEqual(_.property(['a'])({a: false}), false, 'can fetch falsy values');
+	assert.strictEqual(_.property(['x', 'y'])({x: {y: null}}), null, 'can fetch null values deeply');
+	assert.strictEqual(_.property(['x', 'y'])({x: null}), void 0, 'does not crash on property access of nested non-objects');
+	assert.strictEqual(_.property([])({x: 'y'}), void 0, 'returns `undefined` for a path that is an empty array');
+});
+
+QUnit.test('propertyOf', function(assert) {
+	var stoogeRanks = _.propertyOf({curly: 2, moe: 1, larry: 3});
+	assert.strictEqual(stoogeRanks('curly'), 2, 'should return the property with the given name');
+	assert.strictEqual(stoogeRanks(null), void 0, 'should return undefined for null values');
+	assert.strictEqual(stoogeRanks(void 0), void 0, 'should return undefined for undefined values');
+	assert.strictEqual(_.propertyOf({a: null})('a'), null, 'can fetch null values');
+
+	function MoreStooges() { this.shemp = 87; }
+	MoreStooges.prototype = {curly: 2, moe: 1, larry: 3};
+	var moreStoogeRanks = _.propertyOf(new MoreStooges());
+	assert.strictEqual(moreStoogeRanks('curly'), 2, 'should return properties from further up the prototype chain');
+
+	var nullPropertyOf = _.propertyOf(null);
+	assert.strictEqual(nullPropertyOf('curly'), void 0, 'should return undefined when obj is null');
+
+	var undefPropertyOf = _.propertyOf(void 0);
+	assert.strictEqual(undefPropertyOf('curly'), void 0, 'should return undefined when obj is undefined');
+
+	var deepPropertyOf = _.propertyOf({curly: {number: 2}, joe: {number: null}});
+	assert.strictEqual(deepPropertyOf(['curly', 'number']), 2, 'can fetch nested properties of obj');
+	assert.strictEqual(deepPropertyOf(['joe', 'number']), null, 'can fetch nested null properties of obj');
+});
+
+QUnit.test('isMatch', function(assert) {
+	var moe = {name: 'Moe Howard', hair: true};
+	var curly = {name: 'Curly Howard', hair: false};
+
+	assert.strictEqual(_.isMatch(moe, {hair: true}), true, 'Returns a boolean');
+	assert.strictEqual(_.isMatch(curly, {hair: true}), false, 'Returns a boolean');
+
+	assert.strictEqual(_.isMatch(5, {__x__: void 0}), false, 'can match undefined props on primitives');
+	assert.strictEqual(_.isMatch({__x__: void 0}, {__x__: void 0}), true, 'can match undefined props');
+
+	assert.strictEqual(_.isMatch(null, {}), true, 'Empty spec called with null object returns true');
+	assert.strictEqual(_.isMatch(null, {a: 1}), false, 'Non-empty spec called with null object returns false');
+
+	_.each([null, void 0], function(item) { assert.strictEqual(_.isMatch(item, null), true, 'null matches null'); });
+	_.each([null, void 0], function(item) { assert.strictEqual(_.isMatch(item, null), true, 'null matches {}'); });
+	assert.strictEqual(_.isMatch({b: 1}, {a: void 0}), false, 'handles undefined values (1683)');
+
+	_.each([true, 5, NaN, null, void 0], function(item) {
+		assert.strictEqual(_.isMatch({a: 1}, item), true, 'treats primitives as empty');
+	});
+
+	function Prototest() {}
+	Prototest.prototype.x = 1;
+	var specObj = new Prototest;
+	assert.strictEqual(_.isMatch({x: 2}, specObj), true, 'spec is restricted to own properties');
+
+	specObj.y = 5;
+	assert.strictEqual(_.isMatch({x: 1, y: 5}, specObj), true);
+	assert.strictEqual(_.isMatch({x: 1, y: 4}, specObj), false);
+
+	assert.ok(_.isMatch(specObj, {x: 1, y: 5}), 'inherited and own properties are checked on the test object');
+
+	Prototest.x = 5;
+	assert.ok(_.isMatch({x: 5, y: 1}, Prototest), 'spec can be a function');
+
+    //null edge cases
+    var oCon = {constructor: Object};
+    assert.deepEqual(_.map([null, void 0, 5, {}], _.partial(_.isMatch, _.partial.placeholder, oCon)), [false, false, false, true], 'doesnt falsy match constructor on undefined/null');
+});
+
+QUnit.test('matcher', function(assert) {
+	var moe = {name: 'Moe Howard', hair: true};
+	var curly = {name: 'Curly Howard', hair: false};
+	var stooges = [moe, curly];
+
+	assert.strictEqual(_.matcher({hair: true})(moe), true, 'Returns a boolean');
+	assert.strictEqual(_.matcher({hair: true})(curly), false, 'Returns a boolean');
+
+	assert.strictEqual(_.matcher({__x__: void 0})(5), false, 'can match undefined props on primitives');
+	assert.strictEqual(_.matcher({__x__: void 0})({__x__: void 0}), true, 'can match undefined props');
+
+	assert.strictEqual(_.matcher({})(null), true, 'Empty spec called with null object returns true');
+	assert.strictEqual(_.matcher({a: 1})(null), false, 'Non-empty spec called with null object returns false');
+
+	assert.strictEqual(underscore.find(stooges, _.matcher({hair: false})), curly, 'returns a predicate that can be used by finding functions.');
+	assert.strictEqual(underscore.find(stooges, _.matcher(moe)), moe, 'can be used to locate an object exists in a collection.');
+	assert.deepEqual(_.filter([null, void 0], _.matcher({a: 1})), [], 'Do not throw on null values.');
+
+	assert.deepEqual(_.filter([null, void 0], _.matcher(null)), [null, void 0], 'null matches null');
+	assert.deepEqual(_.filter([null, void 0], _.matcher({})), [null, void 0], 'null matches {}');
+	assert.deepEqual(_.filter([{b: 1}], _.matcher({a: void 0})), [], 'handles undefined values (1683)');
+
+	_.each([true, 5, NaN, null, void 0], function(item) {
+		assert.strictEqual(_.matcher(item)({a: 1}), true, 'treats primitives as empty');
+	});
+
+	function Prototest() {}
+	Prototest.prototype.x = 1;
+	var specObj = new Prototest;
+	var protospec = _.matcher(specObj);
+	assert.strictEqual(protospec({x: 2}), true, 'spec is restricted to own properties');
+
+	specObj.y = 5;
+	protospec = _.matcher(specObj);
+	assert.strictEqual(protospec({x: 1, y: 5}), true);
+	assert.strictEqual(protospec({x: 1, y: 4}), false);
+
+	assert.ok(_.matcher({x: 1, y: 5})(specObj), 'inherited and own properties are checked on the test object');
+
+	Prototest.x = 5;
+	assert.ok(_.matcher(Prototest)({x: 5, y: 1}), 'spec can be a function');
+
+    // #1729
+    var o = {b: 1};
+    var m = _.matcher(o);
+
+    assert.strictEqual(m({b: 1}), true);
+    o.b = 2;
+    o.a = 1;
+    assert.strictEqual(m({b: 1}), true, 'changing spec object doesnt change matches result');
+
+
+    //null edge cases
+    var oCon = _.matcher({constructor: Object});
+    assert.deepEqual(_.map([null, void 0, 5, {}], oCon), [false, false, false, true], 'doesnt falsy match constructor on undefined/null');
+});
+
 
 QUnit.test( "extendDeep(Object, Object)", function( assert ) {
 	assert.expect( 28 );

@@ -1,5 +1,3 @@
-var underscore = require('underscore');
-
 var templateFunc = require('../utility/template');
 
 var _ = {
@@ -7,6 +5,8 @@ var _ = {
 	extend: require('../objects/extend'),
 	clone: require('../objects/clone'),
 	range: require('../arrays/range'),
+	every: require('../collection/every'),
+	some: require('../collection/some'),
 
 	noop: require('../utility/noop'),
 	constant: require('../utility/constant'),
@@ -51,11 +51,11 @@ QUnit.test('random', function(assert) {
 	var min = Math.pow(2, 31);
 	var max = Math.pow(2, 62);
 
-	assert.ok(underscore.every(array, function() {
+	assert.ok(_.every(array, function() {
 		return _.random(min, max) >= min;
 	}), 'should produce a random number greater than or equal to the minimum number');
 
-	assert.ok(underscore.some(array, function() {
+	assert.ok(_.some(array, function() {
 		return _.random(Number.MAX_VALUE) > 0;
 	}), 'should produce a random number when passed `Number.MAX_VALUE`');
 });

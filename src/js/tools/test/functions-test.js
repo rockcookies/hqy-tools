@@ -13,6 +13,7 @@ var _ = {
 	compose: require('../functions/compose'),
 	after: require('../functions/after'),
 	before: require('../functions/before'),
+	negate: require('../functions/negate'),
 	restArgs: require('../functions/restArgs')
 };
 
@@ -657,6 +658,12 @@ QUnit.test('before', function(assert) {
 	_.times(10, increment, context);
 	assert.strictEqual(increment(), 2, 'stores a memo to the last value');
 	assert.strictEqual(context.num, 2, 'provides context');
+});
+
+QUnit.test('negate', function(assert) {
+	var isOdd = function(n){ return n & 1; };
+	assert.strictEqual(_.negate(isOdd)(2), true, 'should return the complement of the given function');
+	assert.strictEqual(_.negate(isOdd)(3), false, 'should return the complement of the given function');
 });
 
 QUnit.test('restArgs', function(assert) {

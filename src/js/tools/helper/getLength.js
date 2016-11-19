@@ -1,1 +1,1 @@
-module.exports = require('./property')('length');
+module.exports = require('./shallowProperty')('length');
