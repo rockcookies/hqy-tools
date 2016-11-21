@@ -1,24 +1,16 @@
 var _ = {
 	each: require('../collection/each'),
+	every: require('../collection/every'),
 
 	capitalize: require('../strings/capitalize'),
 	escape: require('../strings/escape'),
 	unescape: require('../strings/unescape'),
 	trim: require('../strings/trim'),
 	trimLeft: require('../strings/trimLeft'),
-	trimRight: require('../strings/trimRight')
+	trimRight: require('../strings/trimRight'),
+	startsWith: require('../strings/startsWith'),
+	endsWith: require('../strings/endsWith')
 };
-
-function arrayEvery(arr, func) {
-	for (var i=0; i<arr.length; i++) {
-		if (!func(arr[i])) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 
 QUnit.module('Tools.Strings');
 
@@ -80,7 +72,7 @@ QUnit.test('_.escape & unescape', function(assert) {
 	var joiner = ' other stuff ';
 	var allEscaped = escapeCharacters.join(joiner);
 	allEscaped += allEscaped;
-	assert.ok(arrayEvery(escapeCharacters, function(escapeChar) {
+	assert.ok(_.every(escapeCharacters, function(escapeChar) {
 		return allEscaped.indexOf(escapeChar) !== -1;
 	}), 'handles multiple characters');
 	assert.ok(allEscaped.indexOf(joiner) >= 0, 'can escape multiple escape characters at the same time');
@@ -135,4 +127,76 @@ QUnit.test( "trimRight", function( assert ) {
 	assert.equal(_.trimRight(''), '', 'trimRight empty string should return empty string');
 	assert.equal(_.trimRight(null), '', 'trimRight null should return empty string');
 });
+
+QUnit.test( "startsWith", function( assert ) {
+	assert.ok(_.startsWith('foobar', 'foo'), 'foobar starts with foo');
+	assert.ok(!_.startsWith('oobar', 'foo'), 'oobar does not start with foo');
+	assert.ok(_.startsWith('oobar', 'o'), 'oobar starts with o');
+	assert.ok(_.startsWith(12345, 123), '12345 starts with 123');
+	assert.ok(!_.startsWith(2345, 123), '2345 does not start with 123');
+	assert.ok(_.startsWith('', ''), 'empty string starts with empty string');
+	assert.ok(_.startsWith(null, ''), 'null starts with empty string');
+	assert.ok(!_.startsWith(null, 'foo'), 'null starts with foo');
+	assert.ok(_.startsWith('-foobar', 'foo', 1), 'foobar starts with foo at position 1');
+	assert.ok(_.startsWith('foobar', 'foo', 0), 'foobar starts with foo at position 0');
+	assert.ok(!_.startsWith('foobar', 'foo', 1), 'foobar starts not with foo at position 1');
+	assert.ok(_.startsWith('Äpfel', 'Ä'), 'string starts with a unicode');
+
+	assert.strictEqual(_.startsWith('hello', 'hell'), true);
+	assert.strictEqual(_.startsWith('HELLO', 'HELL'), true);
+	assert.strictEqual(_.startsWith('HELLO', 'hell'), false);
+	assert.strictEqual(_.startsWith('HELLO', 'hell'), false);
+	assert.strictEqual(_.startsWith('hello', 'hell', 0), true);
+	assert.strictEqual(_.startsWith('HELLO', 'HELL', 0), true);
+	assert.strictEqual(_.startsWith('HELLO', 'hell', 0), false);
+	assert.strictEqual(_.startsWith('HELLO', 'hell', 0), false);
+	assert.strictEqual(_.startsWith('HELLO'), false);
+	assert.strictEqual(_.startsWith('undefined'), true);
+	assert.strictEqual(_.startsWith('null', null), true);
+	assert.strictEqual(_.startsWith('hello', 'hell', -20), true);
+	assert.strictEqual(_.startsWith('hello', 'hell', 1), false);
+	assert.strictEqual(_.startsWith('hello', 'hell', 2), false);
+	assert.strictEqual(_.startsWith('hello', 'hell', 3), false);
+	assert.strictEqual(_.startsWith('hello', 'hell', 4), false);
+	assert.strictEqual(_.startsWith('hello', 'hell', 5), false);
+	assert.strictEqual(_.startsWith('hello', 'hell', 20), false);
+});
+
+QUnit.test( "endsWith", function( assert ) {
+	assert.ok(_.endsWith('foobar', 'bar'), 'foobar ends with bar');
+	assert.ok(_.endsWith('foobarfoobar', 'bar'), 'foobar ends with bar');
+	assert.ok(_.endsWith('foo', 'o'), 'foobar ends with o');
+	assert.ok(_.endsWith('foobar', 'bar'), 'foobar ends with bar');
+	assert.ok(_.endsWith('00018-0000062.Plone.sdh264.1a7264e6912a91aa4a81b64dc5517df7b8875994.mp4', 'mp4'), 'endsWith .mp4');
+	assert.ok(!_.endsWith('fooba', 'bar'), 'fooba does not end with bar');
+	assert.ok(_.endsWith(12345, 45), '12345 ends with 45');
+	assert.ok(!_.endsWith(12345, 6), '12345 does not end with 6');
+	assert.ok(_.endsWith('', ''), 'empty string ends with empty string');
+	assert.ok(_.endsWith(null, ''), 'null ends with empty string');
+	assert.ok(!_.endsWith(null, 'foo'), 'null ends with foo');
+	assert.ok(_.endsWith('foobar?', 'bar', 6), 'foobar ends with bar at position 6');
+	assert.ok(_.endsWith(12345, 34, 4), 'number ends with 34 at position 4');
+	assert.ok(!_.endsWith(12345, 45, 4), 'number ends not with 45 at position 4');
+	assert.ok(_.endsWith('foobä', 'ä'), 'string ends with a unicode');
+
+	assert.strictEqual(_.endsWith('vader', 'der'), true);
+	assert.strictEqual(_.endsWith('VADER', 'DER'), true);
+	assert.strictEqual(_.endsWith('VADER', 'der'), false);
+	assert.strictEqual(_.endsWith('VADER', 'DeR'), false);
+	assert.strictEqual(_.endsWith('VADER'), false);
+	assert.strictEqual(_.endsWith('undefined'), true);
+	assert.strictEqual(_.endsWith('null', null), true);
+	assert.strictEqual(_.endsWith('vader', 'der', 5), true);
+	assert.strictEqual(_.endsWith('VADER', 'DER', 5), true);
+	assert.strictEqual(_.endsWith('VADER', 'der', 5), false);
+	assert.strictEqual(_.endsWith('VADER', 'DER', 5), true);
+	assert.strictEqual(_.endsWith('VADER', 'der', 5), false);
+	assert.strictEqual(_.endsWith('vader', 'der', -20), false);
+	assert.strictEqual(_.endsWith('vader', 'der', 0), false);
+	assert.strictEqual(_.endsWith('vader', 'der', 1), false);
+	assert.strictEqual(_.endsWith('vader', 'der', 2), false);
+	assert.strictEqual(_.endsWith('vader', 'der', 3), false);
+	assert.strictEqual(_.endsWith('vader', 'der', 4), false);
+});
+
 
