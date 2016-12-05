@@ -40,8 +40,9 @@ var extendDeep = module.exports = function() {
 					// Never move original objects, clone them
 					target[name] = extendDeep(clone, copy);
 
-				} else {
-					target[name] = copy;
+				// Don't bring in undefined values
+				} else if ( copy !== undefined ) {
+					target[ name ] = copy;
 				}
 			}
 		}

@@ -522,7 +522,7 @@ QUnit.test( "extendDeep(Object, Object)", function( assert ) {
 	assert.ok( nullUndef[ "xnumber2" ] === null, "Check to make sure null values are copied" );
 
 	nullUndef = _.extendDeep( {}, options, { "xnumber2": undefined } );
-	assert.ok( nullUndef[ "xnumber2" ] === undefined, "Check to make sure undefined values are copied" );
+	assert.ok( nullUndef[ "xnumber2" ] === options[ "xnumber2" ], "Check to make sure undefined values are not copied" );
 
 	nullUndef = _.extendDeep( {}, options, { "xnumber0": null } );
 	assert.ok( nullUndef[ "xnumber0" ] === null, "Check to make sure null values are inserted" );
