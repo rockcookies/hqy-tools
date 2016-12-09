@@ -26,7 +26,8 @@ var _ = {
 	has: require('../objects/has'),
 	invert: require('../objects/invert'),
 	pick: require('../objects/pick'),
-	omit: require('../objects/omit')
+	omit: require('../objects/omit'),
+	findKey: require('../objects/findKey')
 };
 
 
@@ -449,6 +450,47 @@ QUnit.test('matcher', function(assert) {
     //null edge cases
     var oCon = _.matcher({constructor: Object});
     assert.deepEqual(_.map([null, void 0, 5, {}], oCon), [false, false, false, true], 'doesnt falsy match constructor on undefined/null');
+});
+
+
+QUnit.test('findKey', function(assert) {
+	var objects = {
+		a: {a: 0, b: 0},
+		b: {a: 1, b: 1},
+		c: {a: 2, b: 2}
+	};
+
+	assert.strictEqual(_.findKey(objects, function(obj) {
+		return obj.a === 0;
+	}), 'a');
+
+	assert.strictEqual(_.findKey(objects, function(obj) {
+		return obj.b * obj.a === 4;
+	}), 'c');
+
+	assert.strictEqual(_.findKey(objects, 'a'), 'b', 'Uses lookupIterator');
+
+	assert.strictEqual(_.findKey(objects, function(obj) {
+		return obj.b * obj.a === 5;
+	}), void 0);
+
+	assert.strictEqual(_.findKey([1, 2, 3, 4, 5, 6], function(obj) {
+		return obj === 3;
+	}), '2', 'Keys are strings');
+
+	assert.strictEqual(_.findKey(objects, function(a) {
+		return a.foo === null;
+	}), void 0);
+
+	_.findKey({a: {a: 1}}, function(a, key, obj) {
+		assert.strictEqual(key, 'a');
+		assert.deepEqual(obj, {a: {a: 1}});
+		assert.strictEqual(this, objects, 'called with context');
+	}, objects);
+
+	var array = [1, 2, 3, 4];
+	array.match = 55;
+	assert.strictEqual(_.findKey(array, function(x) { return x === 55; }), 'match', 'matches array-likes keys');
 });
 
 
