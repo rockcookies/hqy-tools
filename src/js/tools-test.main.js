@@ -10,4 +10,4 @@ require('./radio/test/requests-test');
 require('./radio/test/events-test');
 
 require('./oo/test/class-test.js');
-
+require('./oo/test/aspect-test.js');
